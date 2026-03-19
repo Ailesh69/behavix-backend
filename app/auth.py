@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from .config import SECRET_KEY , ALGORITHM , ACCESS_TOKEN_EXPIRE_MINUTES
 from .db import get_db
 from . import models
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 
 def hash_pass(password:str) -> str:
@@ -25,20 +27,23 @@ def create_access_token(data:dict) -> str:
     to_encode.update({"exp":expire})
     return jwt.encode(to_encode , SECRET_KEY , algorithm=ALGORITHM)
 
-def get_current_company(authorization : str = Header(...), db : Session = Depends(get_db)):
+def get_current_company(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     try:
-        scheme , token = authorization.split()
-        if scheme.lower() != "bearer":
-            raise HTTPException(status_code=401 , detail="Invalid auth scheme")
-        payload = jwt.decode(token,SECRET_KEY,algorithms=[ALGORITHM])
+        token = credentials.credentials
+        print(f"TOKEN: {token}")  # debug
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"PAYLOAD: {payload}")  # debug
         company_id = payload.get("company_id")
+        print(f"COMPANY_ID: {company_id}")  # debug
         if not company_id:
-            raise HTTPException(status_code=401,detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401,detail="Invalid token")
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError as e:
+        print(f"JWT ERROR: {e}")  # debug
+        raise HTTPException(status_code=401, detail="Invalid token")
     company = db.query(models.Company).filter(models.Company.id == company_id).first()
+    print(f"COMPANY: {company}")  # debug
     if not company:
-        raise HTTPException(status_code=401,detail="Company not found")
+        raise HTTPException(status_code=401, detail="Company not found")
     return company
 
 def get_company_by_api_key(api_key : str = Header(... , alias="X-API-Key"), db : Session = Depends(get_db)):
