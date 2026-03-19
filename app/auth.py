@@ -30,18 +30,13 @@ def create_access_token(data:dict) -> str:
 def get_current_company(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     try:
         token = credentials.credentials
-        print(f"TOKEN: {token}")  # debug
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"PAYLOAD: {payload}")  # debug
         company_id = payload.get("company_id")
-        print(f"COMPANY_ID: {company_id}")  # debug
         if not company_id:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError as e:
-        print(f"JWT ERROR: {e}")  # debug
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
     company = db.query(models.Company).filter(models.Company.id == company_id).first()
-    print(f"COMPANY: {company}")  # debug
     if not company:
         raise HTTPException(status_code=401, detail="Company not found")
     return company

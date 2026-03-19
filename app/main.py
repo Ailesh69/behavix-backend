@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from .routes import auth, events, company , analytics
+from .routes import auth, events, company , analytics , insights
 
 app = FastAPI(title="Behavix API", version="1.0")
 
@@ -17,6 +17,7 @@ app.include_router(auth.router)
 app.include_router(events.router)
 app.include_router(company.router)
 app.include_router(analytics.router)
+app.include_router(insights.router)
 
 def custom_openapi():
     if app.openapi_schema:
@@ -29,6 +30,3 @@ def custom_openapi():
     app.openapi_schema = schema
     return schema
 app.openapi = custom_openapi
-@app.get("/test")
-def test():
-    return {"message": "working"}
