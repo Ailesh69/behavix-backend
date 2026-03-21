@@ -90,3 +90,19 @@ def get_suspicious_ips(
     ).order_by(func.count(models.Event.id).desc()).all()
 
     return [{"ip_address": r.ip_address, "signup_count": r.signup_count} for r in results]
+
+@router.get("/trends")
+def get_trends(
+    company: models.Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    results = db.query(
+        func.date(models.Event.timestamp).label("date"),
+        func.count(models.Event.id).label("count")
+    ).filter(
+        models.Event.company_id == company.id,
+        models.Event.timestamp >= thirty_days_ago
+    ).group_by(func.date(models.Event.timestamp)).order_by("date").all()
+
+    return [{"date": str(r.date), "count": r.count} for r in results]
